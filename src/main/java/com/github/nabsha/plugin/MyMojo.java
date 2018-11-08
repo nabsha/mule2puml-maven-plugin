@@ -40,8 +40,11 @@ public class MyMojo extends AbstractMojo {
   @Parameter ( defaultValue = "${project.basedir}", property = "muleSourceDir", required = true )
   private File muleSourceDir;
 
-  @Parameter ( defaultValue = "/src/main/app/.*\\.xml", property = "muleFilesPathRegex", required = false )
+  @Parameter ( defaultValue = "/.*/src/main/app/.*\\.xml", property = "muleFilesPathRegex", required = false )
   private String muleFilesPathRegex;
+
+  @Parameter ( defaultValue = "/.*/.*\\.properties", property = "propertiesFilesPathRegex", required = false )
+  private String propertiesFilesPathRegex;
 
   @Parameter ( defaultValue = "true", property = "generateUberMuleXML", required = false )
   private boolean generateUberMuleXML;
@@ -59,13 +62,13 @@ public class MyMojo extends AbstractMojo {
   public void execute ()
     throws MojoExecutionException {
 
-    if ( entryXPathFilters == null || entryXPathFilters.isEmpty ()) {
+    if ( entryXPathFilters == null || entryXPathFilters.isEmpty () ) {
       entryXPathFilters = getResourceFileAsList ( "entryXPath.cfg" );
     }
 
     List<Path> files = null;
     try {
-      getLog ().info ( "Searching for mule files in " + muleSourceDir.getAbsolutePath () + " with regex " +muleFilesPathRegex );
+      getLog ().info ( "Searching for mule files in " + muleSourceDir.getAbsolutePath () + " with regex " + muleFilesPathRegex );
       files = searchFiles ( muleSourceDir.getAbsolutePath (), muleFilesPathRegex );
       files.forEach ( file -> {
         getLog ().info ( "Found : " + file.toString () );
@@ -75,9 +78,10 @@ public class MyMojo extends AbstractMojo {
       throw new MojoExecutionException ( "Failed to search mule source files in " + muleSourceDir.getAbsolutePath () );
     }
     if ( files.isEmpty () ) {
-      getLog().info ( "No files found in " + muleSourceDir.getAbsolutePath () + " with " + muleFilesPathRegex + " pattern" );
+      getLog ().info ( "No files found in " + muleSourceDir.getAbsolutePath () + " with " + muleFilesPathRegex + " pattern" );
       return;
     }
+
 
     Stream<File> fileStream = files.stream ().map ( Path::toFile );
 
@@ -96,8 +100,36 @@ public class MyMojo extends AbstractMojo {
       Document transformed = transform ( base, this.getClass ().getClassLoader ().getResourceAsStream ( "flatten-stage1.xsl" ) );
       Document reduced = transform ( transformed, this.getClass ().getClassLoader ().getResourceAsStream ( "reduce-stage2.xsl" ) );
 
+      // replace properties with values
+      ////*[contains(@address,'Downing')]
+      getLog ().info ("Searching for " + propertiesFilesPathRegex + " in " + muleSourceDir.getAbsolutePath ());
+      List<Path> propertiesFiles = searchFiles ( muleSourceDir.getAbsolutePath (), propertiesFilesPathRegex );
+
+      getLog ().info ( "Properties files found : " + propertiesFiles );
+
+      propertiesFiles.forEach ( path -> {
+        Properties properties = new Properties (  );
+        try {
+          properties.load ( new FileInputStream ( path.toFile ()));
+          properties.forEach ( ( k, v ) -> {
+            try {
+
+              NodeList nodeByXPath = findNodeByXPath ( "//attribute::*[contains(., '${"  + k + "}')]", reduced );
+              for (int i = 0; i < nodeByXPath.getLength (); i++) {
+                Node item = nodeByXPath.item ( i );
+                item.setNodeValue ( v.toString () );
+              }
+            } catch ( XPathExpressionException e ) {
+              e.printStackTrace ();
+            }
+          } );
+        } catch ( IOException e ) {
+          e.printStackTrace ();
+        }
+      });
+
       if ( generateUberMuleXML ) {
-        getLog().info ( "Writing mule uber xml to " + outputUberMuleXMLPath.getAbsolutePath () );
+        getLog ().info ( "Writing mule uber xml to " + outputUberMuleXMLPath.getAbsolutePath () );
         outputUberMuleXMLPath.getParentFile ().mkdirs ();
         try ( PrintWriter out = new PrintWriter ( outputUberMuleXMLPath ) ) {
           out.println ( toString ( reduced ) );
@@ -105,7 +137,7 @@ public class MyMojo extends AbstractMojo {
       }
 
       String joined = String.join ( " | ", entryXPathFilters );
-      getLog().info ("Filtering flow using " + joined);
+      getLog ().info ( "Filtering flow using " + joined );
       NodeList results = findNodeByXPath ( joined, reduced );
 
       for ( int i = 0; i < results.getLength (); i++ ) {
@@ -113,7 +145,7 @@ public class MyMojo extends AbstractMojo {
         Node item = results.item ( i );
         String name = getAttrValue ( item, "name" ).replace ( ":", "_" ).replace ( "/", "-" );
         File file = new File ( pumlOutputDir.getAbsolutePath () + "/" + name + ".puml" );
-        getLog().info ("Creating file " + file.getAbsolutePath ());
+        getLog ().info ( "Creating file " + file.getAbsolutePath () );
         file.getParentFile ().mkdirs ();
 
         PrintWriter out = new PrintWriter ( file );
@@ -269,7 +301,7 @@ public class MyMojo extends AbstractMojo {
       }
 
       case "jms:inbound-endpoint": {
-        String jmsIn = esc (getAttrValue ( node, "queue" ));
+        String jmsIn = esc ( getAttrValue ( node, "queue" ) );
         props.put ( "Entry", jmsIn );
         return "";
 
@@ -353,7 +385,7 @@ public class MyMojo extends AbstractMojo {
 
     }
 
-    print (after ( base, node, props ), out);
+    print ( after ( base, node, props ), out );
   }
 
 }

@@ -15,6 +15,7 @@
 				<configuration>
 					<muleSourceDir>src/test/resources/mule-sample-api-v1</muleSourceDir>
 					<muleFilesPathRegex>/src/main/app/.*\.xml</muleFilesPathRegex>
+					<propertiesFilesPathRegex>/.*/.*\.properties</propertiesFilesPathRegex>
 					<generateUberMuleXML>true</generateUberMuleXML>
 					<outputUberMuleXMLPath>target/generated-test-sources/docs/mule.xml</outputUberMuleXMLPath>
 					<pumlOutputDir>target/generated-test-sources/docs/puml</pumlOutputDir>

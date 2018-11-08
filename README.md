@@ -9,8 +9,10 @@ The plugin then
  - then parses the simplified mule flow to generate plantuml (.puml) 
 
 
-Maven Plugin Configuration
-===
+##Usage
+
+### Maven Plugin Configuration
+
 
 ```       
 			<plugin>
@@ -30,7 +32,5 @@ Maven Plugin Configuration
 				</configuration>
 			</plugin>
 ```
-Usage
-==
- 
+### Command line 
 ```mvn com.github.nabsha.plugin:mule2puml-maven-plugin:1.0-SNAPSHOT:mule2puml -DmuleSourceDir=$pwd```
