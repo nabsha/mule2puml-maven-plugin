@@ -3,7 +3,6 @@ package com.github.nabsha.plugin;
 
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
-
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
@@ -25,7 +24,12 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -87,7 +91,6 @@ public class MyMojo extends AbstractMojo {
 
     Properties namespaces = new Properties ();
 
-
     try {
       namespaces.load ( this.getClass ().getClassLoader ().getResourceAsStream ( "default-namespaces.properties" ) );
       Document merge = merge ( "/mule", namespaces, fileStream.toArray ( File[]::new ) );
@@ -127,6 +130,27 @@ public class MyMojo extends AbstractMojo {
           e.printStackTrace ();
         }
       });
+
+
+      // correct http:listener path for apikit generated flows
+
+      NodeList apikitFlows = findNodeByXPath ( "/*[local-name()='mule']/*[local-name()='flow'][contains(@name, 'get:') or contains(@name, 'put:') or contains(@name, 'post:') or contains(@name, 'patch:') or contains(@name, 'delete:') or contains (@name, 'head:')]", reduced );
+      for (int i = 0 ; i < apikitFlows.getLength (); i++) {
+        Node item = apikitFlows.item ( i );
+        String name = getAttrValue ( item, "name" );
+        Pattern pattern = Pattern.compile ( "[^:]*:([^:]*):.*" );
+        Matcher matcher = pattern.matcher ( name );
+
+        if (matcher.find () ) {
+          String group = matcher.group ( 1 );
+          NodeList pathAttr = findNodeByXPath ( ".//*[local-name()='listener']/@path", item.getOwnerDocument () );
+
+          Node path = pathAttr.item ( 0 );
+          String pathValue = path.getNodeValue ().replace ( "*", "" );
+          String finalPath = pathValue + group;
+          path.setNodeValue ( finalPath.replace ( "//", "/" ) );
+        }
+      }
 
       if ( generateUberMuleXML ) {
         getLog ().info ( "Writing mule uber xml to " + outputUberMuleXMLPath.getAbsolutePath () );
