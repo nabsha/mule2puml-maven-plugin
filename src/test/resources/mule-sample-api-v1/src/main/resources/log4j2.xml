@@ -10,39 +10,6 @@
     </Appenders>
 
     <Loggers>
-        <!-- CXF is used heavily by Mule for web services -->
-        <AsyncLogger name="org.apache.cxf" level="WARN"/>
-
-        <!-- Apache Commons tend to make a lot of noise which can clutter the log-->
-        <AsyncLogger name="org.apache" level="WARN"/>
-
-        <!-- Reduce startup noise -->
-        <AsyncLogger name="org.springframework.beans.factory" level="WARN"/>
-
-        <!-- Mule classes -->
-        <AsyncLogger name="org.mule" level="INFO"/>
-        <AsyncLogger name="com.mulesoft" level="INFO"/>
-
-        <!-- Reduce DataMapper verbosity -->
-        <AsyncLogger name="org.jetel" level="WARN"/>
-        <AsyncLogger name="Tracking" level="WARN"/>
-        
-        <!-- Reduce DataWeave verbosity -->
-        <AsyncLogger name="com.mulesoft.weave.mule.utils.MuleWeaveFactory$" level="WARN"/>
-
-        <!-- MuleUtils payload logging -->
-        <AsyncLogger name="mint" level="INFO"/>
-
-        <!-- Disable health endpoint logging -->
-        <AsyncLogger name="health" level="NONE"/>
-        
-        <!-- http endpoints -->
-        <AsyncLogger name="org.glassfish.grizzly" level="ERROR"/>
-        <AsyncLogger name="org.asynchttpclient" level="ERROR"/>
-        <AsyncLogger name="httpclient.wire" level="ERROR" />
-        <AsyncLogger name="com.ning.http" level="ERROR" />
-        <AsyncLogger name="org.mule.module.http" level="ERROR" />
-
         <AsyncRoot level="INFO">
             <AppenderRef ref="Console" />
         </AsyncRoot>

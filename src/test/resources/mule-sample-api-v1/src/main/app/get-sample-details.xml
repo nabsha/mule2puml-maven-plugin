@@ -22,5 +22,11 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
             </http:request-builder>
             <http:success-status-code-validator values="100..599"/>
         </http:request>
+        <dw:transform-message doc:name="Transform Response">
+            <dw:input-payload  mimeType="application/java"/>
+            <dw:set-payload resource="classpath:mappings/transform-response.dwl"/>
+        </dw:transform-message>
     </sub-flow>
+
+
 </mule>

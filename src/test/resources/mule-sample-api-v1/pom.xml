@@ -23,7 +23,6 @@
 						<entryXPathFilter>/*[local-name()='mule']/*[local-name()='flow']/*[local-name()='listener']/parent::node()</entryXPathFilter>
 						<entryXPathFilter>/*[local-name()='mule']/*[local-name()='flow']/*[local-name()='inbound-endpoint']/parent::node()</entryXPathFilter>
 						<entryXPathFilter>/*[local-name()='mule']/*[local-name()='flow'][contains(@name, 'sample-api-v1-config')]</entryXPathFilter>
-						<!--/c:mule/c:flow[@name='get:/{bancsSchemeNo}:sample-api-v1-config']/@name-->
 					</entryXPathFilters>
 				</configuration>
 			</plugin>
