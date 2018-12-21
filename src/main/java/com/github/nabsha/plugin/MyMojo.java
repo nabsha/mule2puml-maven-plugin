@@ -46,7 +46,7 @@ public class MyMojo extends AbstractMojo {
   @Parameter ( defaultValue = "/.*/src/main/app/.*\\.xml", property = "muleFilesPathRegex", required = false )
   private String muleFilesPathRegex;
 
-  @Parameter ( defaultValue = "/.*/.*\\.properties", property = "propertiesFilesPathRegex", required = false )
+  @Parameter ( defaultValue = "/(^(?!.*(target))&.*)/.*\\.properties", property = "propertiesFilesPathRegex", required = false )
   private String propertiesFilesPathRegex;
 
   @Parameter ( defaultValue = "true", property = "generateUberMuleXML", required = false )
@@ -169,6 +169,7 @@ public class MyMojo extends AbstractMojo {
     getLog ().info ( "Properties files found : " + propertiesFiles );
 
     propertiesFiles.forEach ( path -> {
+      getLog ().info ( "Find and replace properties from " + path.toAbsolutePath ().toString () );
       Properties properties = new Properties ();
       try {
         properties.load ( new FileInputStream ( path.toFile () ) );

@@ -2,7 +2,7 @@
                 xmlns:ns0="http://www.mulesoft.org/schema/mule/core"
                 xmlns:apikit="http://www.mulesoft.org/schema/mule/apikit"
                 xmlns:http="http://www.mulesoft.org/schema/mule/http"
-                xmlns:jms="http://www.mulesoft.org/schema/mule/jms" >
+                xmlns:jms="http://www.mulesoft.org/schema/mule/jms">
 
     <xsl:output omit-xml-declaration="yes" indent="yes"/>
     <xsl:strip-space elements="*"/>
