@@ -14,11 +14,12 @@
 				<artifactId>mule2puml-maven-plugin</artifactId>
 				<configuration>
 					<muleSourceDir>src/test/resources/mule-sample-api-v1</muleSourceDir>
+					<isMultiMuleProject>false</isMultiMuleProject>
 					<muleFilesPathRegex>/src/main/app/.*\.xml</muleFilesPathRegex>
 					<propertiesFilesPathRegex>/.*/.*\.properties</propertiesFilesPathRegex>
 					<generateUberMuleXML>true</generateUberMuleXML>
-					<outputUberMuleXMLPath>target/generated-test-sources/docs/mule.xml</outputUberMuleXMLPath>
-					<pumlOutputDir>target/generated-test-sources/docs/puml</pumlOutputDir>
+					<outputUberMuleXMLPath>target/generated-test-sources/mule-sample-api-v1/docs</outputUberMuleXMLPath>
+					<pumlOutputDir>target/generated-test-sources/mule-sample-api-v1/puml</pumlOutputDir>
 					<entryXPathFilters>
 						<entryXPathFilter>/*[local-name()='mule']/*[local-name()='flow']/*[local-name()='listener']/parent::node()</entryXPathFilter>
 						<entryXPathFilter>/*[local-name()='mule']/*[local-name()='flow']/*[local-name()='inbound-endpoint']/parent::node()</entryXPathFilter>

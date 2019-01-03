@@ -30,5 +30,18 @@ public class MyMojoTest extends AbstractMojoTestCase
         assertTrue( true );
     }
 
+
+    public void testMultipleProjects() throws Exception {
+        File pom = new File( "src/test/resources/multiple-projects/pom.xml" );
+
+        Mojo mojo = lookupMojo ( "mule2puml", pom );
+        mojo.execute ();
+        //MyMojo mojo = new MyMojo ();
+        //mojo = (MyMojo) configureMojo ( mojo, extractPluginConfiguration("mule2puml-maven-plugin", pom));
+
+        assertTrue( true );
+    }
+
+
 }
 

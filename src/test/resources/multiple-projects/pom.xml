@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>sample-group</groupId>
+	<artifactId>mule-sample-api-v1</artifactId>
+	<version>1.0.0-SNAPSHOT</version>
+	<packaging>mule</packaging>
+	<name>Mule Multiple projects Test Application</name>
+
+	<build>
+		<plugins>
+			<plugin>
+				<artifactId>mule2puml-maven-plugin</artifactId>
+				<configuration>
+					<muleSourceDir>src/test/resources/multiple-projects</muleSourceDir>
+					<isMultiMuleProject>true</isMultiMuleProject>
+					<muleFilesPathRegex>/.*/src/main/app/.*\.xml</muleFilesPathRegex>
+					<propertiesFilesPathRegex>/.*/.*\.properties</propertiesFilesPathRegex>
+					<generateUberMuleXML>true</generateUberMuleXML>
+					<outputUberMuleXMLPath>target/generated-test-sources/multiple-projects/docs</outputUberMuleXMLPath>
+					<pumlOutputDir>target/generated-test-sources/multiple-projects/docs/puml</pumlOutputDir>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+
+</project>
