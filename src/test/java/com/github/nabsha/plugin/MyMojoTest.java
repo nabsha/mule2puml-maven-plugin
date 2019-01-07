@@ -10,6 +10,8 @@ import org.junit.Rule;
 import static org.junit.Assert.*;
 import org.junit.Test;
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 public class MyMojoTest extends AbstractMojoTestCase
 {
@@ -20,14 +22,27 @@ public class MyMojoTest extends AbstractMojoTestCase
         super.setUp();
     }
 
-    public void testSomethingWhichDoesNotNeedTheMojoAndProbablyShouldBeExtractedIntoANewClassOfItsOwn() throws Exception {
-        File pom = new File( "src/test/resources/mule-sample-api-v1/pom.xml" );
+    public void testApiKitBasedPumlSequenceGenerator() throws Exception {
+        File pom = new File( "src/test/resources/apikit-test/pom.xml" );
         Mojo mojo = lookupMojo ( "mule2puml", pom );
         mojo.execute ();
-        //MyMojo mojo = new MyMojo ();
-        //mojo = (MyMojo) configureMojo ( mojo, extractPluginConfiguration("mule2puml-maven-plugin", pom));
 
-        assertTrue( true );
+        byte[] actualBytes = Files.readAllBytes(Paths.get("./target/generated-test-sources/apikit-test/puml/get_-_sample-api-v1-config.puml"));
+        byte[] expectedBytes = Files.readAllBytes(Paths.get("./src/test/resources/expected/apikit-test/expected-get_-_sample-api-v1-config.puml"));
+
+        assertArrayEquals(expectedBytes, actualBytes);
+    }
+
+
+    public void testHttpListenerBasedPumlSequenceGenerator() throws Exception {
+        File pom = new File( "src/test/resources/http-listener-test/pom.xml" );
+        Mojo mojo = lookupMojo ( "mule2puml", pom );
+        mojo.execute ();
+
+        byte[] actualBytes = Files.readAllBytes(Paths.get("./target/generated-test-sources/http-listener-test/puml/sample-api-v1-config.puml"));
+        byte[] expectedBytes = Files.readAllBytes(Paths.get("./src/test/resources/expected/http-listener-test/expected-sample-api-v1-config.puml"));
+
+        assertArrayEquals(expectedBytes, actualBytes);
     }
 
 
@@ -36,8 +51,8 @@ public class MyMojoTest extends AbstractMojoTestCase
 
         Mojo mojo = lookupMojo ( "mule2puml", pom );
         mojo.execute ();
-        //MyMojo mojo = new MyMojo ();
-        //mojo = (MyMojo) configureMojo ( mojo, extractPluginConfiguration("mule2puml-maven-plugin", pom));
+
+
 
         assertTrue( true );
     }

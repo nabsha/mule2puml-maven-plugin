@@ -1,0 +1,5 @@
+@startuml
+"/v1/test"-->"HTTPS://api.test.com:37101/#['getSchemeDtls']"
+"HTTPS://api.test.com:37101/#['getSchemeDtls']"-->"/v1/test"
+"/v1/test" --> "/v1/test" : Transform Response
+@enduml

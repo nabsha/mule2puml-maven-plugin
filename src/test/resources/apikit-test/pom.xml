@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>sample-group</groupId>
+	<artifactId>mule-sample-api-v1</artifactId>
+	<version>1.0.0-SNAPSHOT</version>
+	<packaging>mule</packaging>
+	<name>Mule mule-sample-api-v1 Application</name>
+
+	<build>
+		<plugins>
+			<plugin>
+				<artifactId>mule2puml-maven-plugin</artifactId>
+				<configuration>
+					<muleSourceDir>src/test/resources/apikit-test</muleSourceDir>
+					<isMultiMuleProject>false</isMultiMuleProject>
+					<muleFilesPathRegex>/src/main/app/.*\.xml</muleFilesPathRegex>
+					<propertiesFilesPathRegex>.*/.*/*\.properties</propertiesFilesPathRegex>
+					<generateUberMuleXML>true</generateUberMuleXML>
+					<outputUberMuleXMLPath>target/generated-test-sources/apikit-test/docs</outputUberMuleXMLPath>
+					<pumlOutputDir>target/generated-test-sources/apikit-test/puml</pumlOutputDir>
+					<entryXPathFilters>
+						<entryXPathFilter>/*[local-name()='mule']/*[local-name()='flow']/*[local-name()='listener']/parent::node()</entryXPathFilter>
+						<entryXPathFilter>/*[local-name()='mule']/*[local-name()='flow']/*[local-name()='inbound-endpoint']/parent::node()</entryXPathFilter>
+						<entryXPathFilter>/*[local-name()='mule']/*[local-name()='flow'][contains(@name, 'sample-api-v1-config')]</entryXPathFilter>
+					</entryXPathFilters>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+
+</project>

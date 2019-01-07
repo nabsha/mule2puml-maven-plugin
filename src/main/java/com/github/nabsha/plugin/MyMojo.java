@@ -16,6 +16,7 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.xpath.*;
 import java.io.*;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
@@ -78,32 +79,27 @@ public class MyMojo extends AbstractMojo {
             String propertiesSearchBasePath = muleSourceDir.getAbsolutePath() + "/";
             String muleUberXMLFilePath = outputUberMuleXMLPath.toString();
             String pumlOutputPath = pumlOutputDir.getAbsolutePath().toString();
+
             if (isMultiMuleProject) {
                 propertiesSearchBasePath = muleSourceDir.getAbsolutePath() + "/" + folderBasePath;
                 muleUberXMLFilePath = outputUberMuleXMLPath.toString() + "/" + folderBasePath;
                 pumlOutputPath = pumlOutputDir.getAbsolutePath().toString() + "/" + folderBasePath;
             }
 
-
-
             List<Path> files = entry.getValue();
 
             Document muleUberXML = null;
             try {
-
                 muleUberXML = createMuleUberXML(files);
-
             } catch (Exception e) {
                 throw new MojoExecutionException("Failed to merge documents " + printStackTrace(e));
             }
 
             try {
-
                 replaceProperties(muleUberXML, propertiesSearchBasePath, propertiesFilesPathRegex);
             } catch (IOException e) {
                 throw new MojoExecutionException("Failed to replace properties" + printStackTrace(e));
             }
-
 
             try {
                 injectHTTPListenerForAPIKitFlows(muleUberXML);
@@ -112,7 +108,6 @@ public class MyMojo extends AbstractMojo {
             }
 
             try {
-
                 writeMuleUberXML(muleUberXML, new File(muleUberXMLFilePath));
             } catch (FileNotFoundException e) {
                 throw new MojoExecutionException("Write Uber XML Failed : " + printStackTrace(e));
@@ -120,16 +115,16 @@ public class MyMojo extends AbstractMojo {
 
             String joined = String.join(" | ", entryXPathFilters);
             getLog().info("Filtering Entry flows using " + joined);
-            NodeList results = null;
+
             try {
-                results = findNodeByXPath(joined, muleUberXML);
+                NodeList results = findNodeByXPath(joined, muleUberXML);
 
                 for (int i = 0; i < results.getLength(); i++) {
                     generatePuml(muleUberXML, results.item(i), pumlOutputPath);
                 }
             } catch (XPathExpressionException e) {
                 throw new MojoExecutionException("Generate Puml failed: Failed to find node using xpath " + printStackTrace(e));
-            } catch (FileNotFoundException e) {
+            } catch (IOException e) {
                 throw new MojoExecutionException("Generate Puml failed: " + printStackTrace(e));
             }
         }
@@ -137,7 +132,7 @@ public class MyMojo extends AbstractMojo {
     }
 
 
-    private void generatePuml(Document muleUberXML, Node item, String pumlOutputDirAbsolutePath) throws FileNotFoundException, XPathExpressionException {
+    private void generatePuml(Document muleUberXML, Node item, String pumlOutputDirAbsolutePath) throws IOException, XPathExpressionException {
         Map<String, String> props = new HashMap<>();
         String name = getAttrValue(item, "name").replace(":", "_").replace("/", "-");
         File file = new File(pumlOutputDirAbsolutePath + "/" + name + ".puml");
@@ -147,6 +142,12 @@ public class MyMojo extends AbstractMojo {
         PrintWriter out = new PrintWriter(file);
         walk(muleUberXML, item, props, out);
         out.close();
+
+        Path path = file.toPath();
+        if (Files.size(path) < 1) {
+            getLog().info("Deleting empty file " + file.getAbsolutePath());
+            Files.delete(path);
+        }
     }
 
     private void writeMuleUberXML(Document muleUberXML, File outputPath) throws FileNotFoundException {
@@ -183,7 +184,6 @@ public class MyMojo extends AbstractMojo {
     private void replaceProperties(Document muleUberXML, String absolutePath, String propertiesFilesPathRegex) throws IOException {
         // replace properties with values
         getLog().info("Searching for " + propertiesFilesPathRegex + " in " + absolutePath);
-
 
         List<Path> propertiesFiles = searchFiles(absolutePath, propertiesFilesPathRegex);
         getLog().info("Properties files found : " + propertiesFiles);
@@ -290,6 +290,9 @@ public class MyMojo extends AbstractMojo {
 
         switch (node.getNodeName()) {
             case "flow":
+                String doc = getAttrValue(node, "doc:description");
+                if (doc != null && doc.contains("mule2puml-ignore-router-flow"))
+                    return "";
                 return "@startuml";
 
             case "http:listener": {
@@ -359,6 +362,12 @@ public class MyMojo extends AbstractMojo {
         switch (node.getNodeName()) {
             case "flow": {
                 props.remove("Entry");
+
+                // skip this flow
+                String doc = getAttrValue(node, "doc:description");
+                if (doc != null && doc.contains("mule2puml-ignore-router-flow"))
+                    return "";
+
                 return "@enduml";
             }
             case "http:request": {
