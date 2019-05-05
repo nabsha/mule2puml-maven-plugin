@@ -64,7 +64,7 @@ public class FileUtils {
     public static List<Path> searchFiles(String path, String pattern) throws IOException {
 
         return Files.walk(Paths.get(path))
-                .filter(p -> p.toString().matches(path + pattern))
+                .filter(p -> p.toString().matches(pattern))
                 .collect(Collectors.toList());
 
     }

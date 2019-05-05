@@ -47,7 +47,7 @@ public class MyMojo extends AbstractMojo {
     @Parameter(defaultValue = "/.*/src/main/app/.*\\.xml", property = "muleFilesPathRegex", required = false)
     private String muleFilesPathRegex;
 
-    @Parameter(defaultValue = "/(^(?!.*(target))&.*)/.*\\.properties", property = "propertiesFilesPathRegex", required = false)
+    @Parameter(defaultValue = "(^(?!.*(target|test)).*).*.properties", property = "propertiesFilesPathRegex", required = false)
     private String propertiesFilesPathRegex;
 
     @Parameter(defaultValue = "true", property = "generateUberMuleXML", required = false)
