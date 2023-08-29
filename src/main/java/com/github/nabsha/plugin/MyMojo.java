@@ -7,7 +7,6 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.w3c.dom.Document;
-import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
@@ -16,7 +15,6 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.xpath.*;
 import java.io.*;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
@@ -26,7 +24,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
-import static com.github.nabsha.plugin.CommonUtils.esc;
 import static com.github.nabsha.plugin.CommonUtils.printStackTrace;
 import static com.github.nabsha.plugin.FileUtils.*;
 import static com.github.nabsha.plugin.XMLUtils.*;
@@ -59,9 +56,20 @@ public class MyMojo extends AbstractMojo {
     @Parameter(defaultValue = "${project.build.directory}/docs/puml", property = "pumlOutputDir", required = false)
     private File pumlOutputDir;
 
+    @Parameter(defaultValue = "false", property = "useFlowName", required = false)
+    private boolean useFlowName;
+
+    @Parameter(defaultValue = "1", property = "detailLevel", required = false)
+    private int detailLevel;
 
     @Parameter(property = "entryXPathFilters", required = false)
     private List<String> entryXPathFilters;
+
+    @Parameter(defaultValue = "true", property = "sequenceDiagram", required = false)
+    private boolean sequenceDiagram;
+
+    @Parameter(defaultValue = "false", property = "interactionDiagram", required = false)
+    private boolean interactionDiagram;
 
     public void execute() throws MojoExecutionException {
 
@@ -70,6 +78,15 @@ public class MyMojo extends AbstractMojo {
         }
 
         Map<String, List<Path>> filesGroup = getMuleProjectFiles(muleSourceDir.getAbsolutePath(), muleFilesPathRegex, isMultiMuleProject);
+
+        Map<String, String> cliOptions = new HashMap<>();
+        cliOptions.put("detailLevel", detailLevel + "");
+        cliOptions.put("useFlowName", useFlowName + "");
+        cliOptions.put("pumlOutputDir", pumlOutputDir.getAbsolutePath());
+
+
+        SequenceDiagramGenerator sequenceDiagramGenerator = new SequenceDiagramGenerator(getLog(), cliOptions);
+        PlantUMLInteractionDiagramGenerator interactionDiagramGenerator = new PlantUMLInteractionDiagramGenerator(getLog(), cliOptions);
 
         if (filesGroup == null) return;
 
@@ -120,35 +137,23 @@ public class MyMojo extends AbstractMojo {
                 NodeList results = findNodeByXPath(joined, muleUberXML);
 
                 for (int i = 0; i < results.getLength(); i++) {
-                    generatePuml(muleUberXML, results.item(i), pumlOutputPath);
+                    if (sequenceDiagram) {
+                        getLog().info("Generating Sequence Diagram for " + getAttrValue(results.item(i), "name"));
+                        sequenceDiagramGenerator.generate(muleUberXML, results.item(i));
+                    }
+                    if (interactionDiagram) {
+                        getLog().info("Generating Interaction Diagram for " + getAttrValue(results.item(i), "name"));
+                        interactionDiagramGenerator.generate(muleUberXML, results.item(i));
+                    }
+
                 }
             } catch (XPathExpressionException e) {
                 throw new MojoExecutionException("Generate Puml failed: Failed to find node using xpath " + printStackTrace(e));
-            } catch (IOException e) {
-                throw new MojoExecutionException("Generate Puml failed: " + printStackTrace(e));
             }
         }
 
     }
 
-
-    private void generatePuml(Document muleUberXML, Node item, String pumlOutputDirAbsolutePath) throws IOException, XPathExpressionException {
-        Map<String, String> props = new HashMap<>();
-        String name = getAttrValue(item, "name").replace(":", "_").replace("/", "-");
-        File file = new File(pumlOutputDirAbsolutePath + "/" + name + ".puml");
-        getLog().info("Creating file " + file.getAbsolutePath());
-        file.getParentFile().mkdirs();
-
-        PrintWriter out = new PrintWriter(file);
-        walk(muleUberXML, item, props, out);
-        out.close();
-
-        Path path = file.toPath();
-        if (Files.size(path) < 1) {
-            getLog().info("Deleting empty file " + file.getAbsolutePath());
-            Files.delete(path);
-        }
-    }
 
     private void writeMuleUberXML(Document muleUberXML, File outputPath) throws FileNotFoundException {
         if (generateUberMuleXML) {
@@ -221,8 +226,11 @@ public class MyMojo extends AbstractMojo {
         docBuilderFactory.setNamespaceAware(true);
         DocumentBuilder docBuilder = null;
         docBuilder = docBuilderFactory.newDocumentBuilder();
+        getLog().info("Parsing mule uber xml");
         Document base = docBuilder.parse(new InputSource(new StringReader(mergedDoc)));
+        getLog().info("Transforming mule uber xml");
         Document transformed = transform(base, this.getClass().getClassLoader().getResourceAsStream("flatten-stage1.xsl"));
+        getLog().info("Reducing mule uber xml");
         return transform(transformed, this.getClass().getClassLoader().getResourceAsStream("reduce-stage2.xsl"));
     }
 
@@ -259,6 +267,7 @@ public class MyMojo extends AbstractMojo {
         docBuilderFactory.setIgnoringElementContentWhitespace(true);
         DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
 
+        getLog().info("Merging files...");
         Document base = docBuilder.parse(files[0]);
 
         defaultNamespaces.stringPropertyNames().forEach(key -> {
@@ -272,6 +281,7 @@ public class MyMojo extends AbstractMojo {
         }
 
         for (int i = 1; i < files.length; i++) {
+            getLog().info("Merging " + files[i].getName());
             Document merge = docBuilder.parse(files[i]);
             Node nextResults = (Node) compiledExpression.evaluate(merge,
                     XPathConstants.NODE);
@@ -286,137 +296,7 @@ public class MyMojo extends AbstractMojo {
         return base;
     }
 
-    public String before(Document document, Node node, Map<String, String> props) throws XPathExpressionException {
-
-        switch (node.getNodeName()) {
-            case "flow":
-                String doc = getAttrValue(node, "doc:description");
-                if (doc != null && doc.contains("mule2puml-ignore-router-flow"))
-                    return "";
-                return "@startuml";
-
-            case "http:listener": {
-
-                String configName = getAttrValue(node, "config-ref");
-
-                NodeList nodeByXPath = findNodeByXPath("/*[local-name()='mule']/*[local-name()='listener-config'][@name='" + configName + "']", document);
-                NamedNodeMap configAttr = nodeByXPath.item(0).getAttributes();
-
-                String value = esc(getAttrValue(node, "path"));
-                props.put("Entry", value);
-                return "";
-            }
-
-            case "http:request": {
-                String configName = getAttrValue(node, "config-ref");
-                NodeList nodeByXPath = findNodeByXPath("/*[local-name()='mule']/*[local-name()='request-config'][@name='" + configName + "']", document);
-                Node configAttr = nodeByXPath.item(0);
-                String url = getAttrValue(configAttr, "protocol") + "://"
-                        + getAttrValue(configAttr, "host") + ":"
-                        + getAttrValue(configAttr, "port")
-                        + getAttrValue(configAttr, "basePath")
-                        + getAttrValue(node, "path");
-
-                return props.get("Entry") + "-->" + esc(url);
-            }
-
-            case "jms:inbound-endpoint": {
-                String jmsIn = esc(getAttrValue(node, "queue"));
-                props.put("Entry", jmsIn);
-                return "";
-
-            }
-
-            case "choice":
-            case "foreach": {
-                return "alt " + getAttrValue(node, "doc:name");
-            }
-
-            case "otherwise":
-                return "else otherwise";
-            case "when":
-                return "else " + esc(getAttrValue(node, "expression"));
-
-            case "expression-component":
-            case "expression":
-            case "invoke":
-            case "dw:transform-message": {
-                return props.get("Entry") + " --> " + props.get("Entry") + " : " + getAttrValue(node, "doc:name");
-            }
-            case "db:update":
-            case "db:select":
-            case "db:delete":
-
-                String entry = props.get("Entry");
-                if (entry != null && entry.isEmpty())
-                    return "";
-                return entry + "--> " + esc(node.getNodeName());
-
-            default:
-                return "";
-        }
-    }
 
 
-    public String after(Document document, Node node, Map<String, String> props) throws XPathExpressionException {
-        switch (node.getNodeName()) {
-            case "flow": {
-                props.remove("Entry");
-
-                // skip this flow
-                String doc = getAttrValue(node, "doc:description");
-                if (doc != null && doc.contains("mule2puml-ignore-router-flow"))
-                    return "";
-
-                return "@enduml";
-            }
-            case "http:request": {
-                String configName = getAttrValue(node, "config-ref");
-                NodeList nodeByXPath = findNodeByXPath("/*[local-name()='mule']/*[local-name()='request-config'][@name='" + configName + "']", document);
-                Node configAttr = nodeByXPath.item(0);
-                String url = getAttrValue(configAttr, "protocol") + "://"
-                        + getAttrValue(configAttr, "host") + ":"
-                        + getAttrValue(configAttr, "port")
-                        + getAttrValue(configAttr, "basePath")
-                        + getAttrValue(node, "path");
-
-                return esc(url) + "-->" + props.get("Entry");
-            }
-
-            case "choice":
-            case "foreach":
-                return "end alt";
-            default:
-                return "";
-        }
-    }
-
-    public void print(String str, PrintWriter out) {
-        if (str.isEmpty())
-            return;
-
-        out.println(str);
-    }
-
-    public void walk(Document base, Node node, Map<String, String> props, PrintWriter out) throws XPathExpressionException {
-
-        print(before(base, node, props), out);
-
-        NodeList nodeList = node.getChildNodes();
-
-        for (int i = 0; i < nodeList.getLength(); i++) {
-
-            Node currentNode = nodeList.item(i);
-
-            if (currentNode.getNodeType() == Node.ELEMENT_NODE) {
-
-                walk(base, currentNode, props, out);
-
-            }
-
-        }
-
-        print(after(base, node, props), out);
-    }
 
 }
